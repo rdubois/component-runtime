@@ -407,6 +407,8 @@ public class ComponentResourceImpl implements ComponentResource {
 
                 final Locale locale = localeMapper.mapLocale(language);
                 final boolean isProcessor = ComponentFamilyMeta.ProcessorMeta.class.isInstance(meta);
+                final boolean isFunction =
+                        meta.getType().isAnnotationPresent(org.talend.sdk.component.api.processor.Function.class);
 
                 final ComponentDetail componentDetail = new ComponentDetail();
                 componentDetail.setLinks(emptyList() /* todo ? */);
@@ -428,7 +430,19 @@ public class ComponentResourceImpl implements ComponentResource {
                                 .findActions(meta.getParent().getName(), container, locale, meta,
                                         meta.getParent().findBundle(container.getLoader(), locale)));
                 if (isProcessor) {
-                    componentDetail.setMetadata(emptyMap());
+                    if (isFunction) {
+                        org.talend.sdk.component.api.processor.Function f =
+                                meta.getType().getAnnotation(org.talend.sdk.component.api.processor.Function.class);
+                        Map<String, String> metas = new HashMap<>();
+                        metas.put("processor::type", "function");
+                        metas.put("processor::function::description", f.description());
+                        metas.put("processor::function::categories", String.join(",", f.categories()));
+                        metas.put("processor::function::scopes", String.join(",", f.scopes()));
+                        metas.put("processor::function::terms", String.join(",", f.terms()));
+                        componentDetail.setMetadata(metas);
+                    } else {
+                        componentDetail.setMetadata(emptyMap());
+                    }
                 } else {
                     componentDetail
                             .setMetadata(singletonMap("mapper::infinite", Boolean
